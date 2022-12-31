@@ -1,6 +1,6 @@
 export enum listNetwork {
   Bitcoin = "Bitcoin",
   Ethereum = "Ethereum",
-  Tron = "TRX",
+  Tron = "TRON",
   Bsc = "BSC",
 }

@@ -1,7 +1,13 @@
-import { Controller, Get } from "@nestjs/common";
+import { Body, Controller, Get, Post, Query } from "@nestjs/common";
 import { WalletService } from "./account.service";
 import { ApiTags } from "@nestjs/swagger";
 import { ROUTER } from "@utils/constant/router";
+import {
+  CreateAccountDto,
+  CheckValidAddressDto,
+  DWNetworkDto,
+  GetBalanceOfDto,
+} from "./account.dto";
 
 @ApiTags("Account")
 @Controller(ROUTER.ACCOUNT)
@@ -9,7 +15,22 @@ export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
   @Get(ROUTER.CREATE_ACCOUNT)
-  async createAcocunt() {
-    return this.walletService.createNewWallet();
+  async createAcocunt(@Query() query: CreateAccountDto) {
+    return this.walletService.createNewWallet(query);
+  }
+
+  @Get(ROUTER.VALID_ADDRESS)
+  async validAddress(@Query() query: CheckValidAddressDto) {
+    return this.walletService.validAddress(query);
+  }
+
+  @Post(ROUTER.ADD_NEW_NETWORK)
+  async addnewNetwork(@Body() body: DWNetworkDto) {
+    return this.walletService.addNetwork(body);
+  }
+
+  @Get(ROUTER.GET_BALANCE_OF)
+  async getBalance(@Query() query: GetBalanceOfDto) {
+    return this.walletService.getBalanceOfToken(query);
   }
 }

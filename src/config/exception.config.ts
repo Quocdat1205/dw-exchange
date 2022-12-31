@@ -2,7 +2,7 @@ import { HttpException, HttpStatus } from "@nestjs/common";
 import { ExceptionFilter, Catch, ArgumentsHost } from "@nestjs/common";
 import { Response } from "express";
 import { IncomingMessage } from "http";
-import { CustomExceptionDto } from "src/type/rest.type";
+import { ExceptionDto } from "src/type/rest.type";
 
 export class ForbiddenException extends HttpException {
   constructor(message: string) {
@@ -62,9 +62,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 }
 
-export const CustomException = (
-  props: CustomExceptionDto,
-): CustomExceptionDto => {
+export const Exception = (props: ExceptionDto): ExceptionDto => {
   return {
     ...props,
     timestamp: new Date().toISOString(),

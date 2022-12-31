@@ -1,4 +1,4 @@
-export class CustomExceptionDto {
+export class ExceptionDto {
   statusCode: number;
   data?: any;
   message?: string;

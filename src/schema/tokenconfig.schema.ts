@@ -18,6 +18,9 @@ export class TokenConfig {
   @Prop({ required: true })
   depositEnable: boolean;
 
+  @Prop({ required: true })
+  withdrawEnable: boolean;
+
   @Prop({ default: 0, required: false })
   withdrawMin: number;
 

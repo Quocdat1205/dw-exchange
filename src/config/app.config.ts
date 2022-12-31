@@ -6,7 +6,6 @@ import { AppModule } from "@modules/app/app.module";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import { origin } from "@utils/constant/origin";
 import compression from "compression";
-import { GlobalExceptionFilter } from "./exception.config";
 
 export async function appConfig(
   app: NestExpressApplication,
@@ -28,7 +27,7 @@ export async function appConfig(
     credentials: true,
   });
   app.use(compression());
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  // app.useGlobalFilters(new GlobalExceptionFilter());
 
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
 

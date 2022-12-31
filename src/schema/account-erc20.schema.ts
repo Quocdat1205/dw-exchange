@@ -1,10 +1,10 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 
-export type AccountType = Account & Document;
+export type AccountERC20Type = AccountERC20 & Document;
 
 @Schema()
-export class Account {
+export class AccountERC20 {
   @Prop({ required: true })
   address: string;
 
@@ -39,4 +39,4 @@ export class Account {
   updatedAt?: Date;
 }
 
-export const AccountSchema = SchemaFactory.createForClass(Account);
+export const AccountERC20Schema = SchemaFactory.createForClass(AccountERC20);
