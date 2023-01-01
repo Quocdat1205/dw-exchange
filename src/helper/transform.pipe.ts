@@ -11,12 +11,6 @@ export class Transformation {
     return parseInt(value);
   }
 
-  public static checkPositive(value: string): number | undefined {
-    if (parseFloat(value) < 0) return undefined;
-
-    return parseFloat(value);
-  }
-
   public static parseStringToFloat(value: string): number | undefined {
     if (!value) return undefined;
 
@@ -42,6 +36,22 @@ export class Transformation {
 
     if (Number.isNaN(explodedValues)) {
       return new ForbiddenException("Id wrong, please check again!");
+    }
+
+    return value;
+  }
+
+  public static validateNumber(value: number, from = 0, to?: number) {
+    if (to) {
+      if (value < from || value > to) {
+        return new ForbiddenException(
+          `Value must be in the range from: ${from} to ${to}`,
+        );
+      }
+    } else {
+      if (value < from) {
+        return new ForbiddenException(`Value must be greater than ${from}`);
+      }
     }
 
     return value;

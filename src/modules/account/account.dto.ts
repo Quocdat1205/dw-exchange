@@ -26,15 +26,6 @@ export class CreateAccountDto {
 
 export class CheckValidAddressDto {
   @ApiProperty({
-    type: listNetwork,
-    title: "The type of network you want to create an account for",
-    description: `Network in [Bitcoin, Ethereum, TRON, BSC]`,
-    default: "BSC",
-  })
-  @IsEnum(listNetwork)
-  network: listNetwork;
-
-  @ApiProperty({
     type: String,
     title: "Contract address",
     description: `Address need check valid`,

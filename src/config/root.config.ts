@@ -6,6 +6,7 @@ import validationEnv from "./joi.config";
 import env from "@utils/constant/env";
 import { MongooseModule } from "@nestjs/mongoose";
 import { WalletModule } from "@modules/account/account.module";
+import { TransactionModule } from "@modules/transaction/transaction.module";
 
 export const RootModule = [
   ConfigModule.forRoot({
@@ -23,4 +24,5 @@ export const RootModule = [
   ScheduleModule.forRoot(),
   MongooseModule.forRoot(env.MONGO_URL),
   WalletModule,
+  TransactionModule,
 ];

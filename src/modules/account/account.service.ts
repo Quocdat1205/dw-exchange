@@ -28,8 +28,7 @@ import { LoggerService } from "@modules/logger/logger.service";
 import CoinKey from "coinkey";
 import { isAddressValid } from "src/helper/handler";
 import { Exception } from "@config/exception.config";
-import { RESPONSE_CODE, RESPONSE_MSG } from "@utils/constant/response-code";
-import Sdk from "api";
+import { RESPONSE_CODE } from "@utils/constant/response-code";
 import { ethers } from "ethers";
 import { BscService } from "@modules/bsc/bsc.service";
 import { ERC20_ABI } from "@utils/abi/ERC20_ABI";
@@ -38,7 +37,8 @@ import { weiToEther } from "src/helper/handler";
 @Injectable()
 export class WalletService {
   private web3: Web3API;
-
+  private tronWeb: any;
+  private provider: any;
   constructor(
     @InjectModel(AccountERC20.name)
     private readonly modelAccountEthereum: Model<AccountERC20Type>,
@@ -55,6 +55,10 @@ export class WalletService {
     this.web3 = new Web3API(
       new Web3API.providers.HttpProvider(env.ETHEREUM_RCP),
     );
+    this.tronWeb = new TronWeb({
+      fullHost: env.TRX_RPC,
+    });
+    this.provider = new ethers.providers.WebSocketProvider(`${env.INFURA_KEY}`);
   }
 
   public async createNewWallet(
@@ -75,7 +79,7 @@ export class WalletService {
         case listNetwork.Bitcoin:
           return await this.createAccountBitcoin();
           break;
-        case listNetwork.Tron:
+        case listNetwork.Trx:
           return await this.createAccountTrx();
           break;
       }
@@ -161,24 +165,30 @@ export class WalletService {
   }
 
   public async validAddress(props: CheckValidAddressDto) {
-    const { network, address } = props;
+    const { address } = props;
 
     try {
-      const info_network = await this.modelNetwork.findOne({ network }).exec();
+      const networks = [];
+      const listNetwork = await this.modelNetwork.find().exec();
 
-      if (!info_network) {
-        return Exception({
-          statusCode: RESPONSE_CODE.bad_request,
-          error: RESPONSE_MSG.bad_request,
-          message: "Network not found",
-        });
+      for (const network of listNetwork) {
+        const isValid = await isAddressValid(address, network.network);
+
+        if (isValid) {
+          networks.push({ name: network.name, network: network.network });
+        }
       }
 
-      const isValid = await isAddressValid(address, network);
-
-      return isValid;
+      return Exception({
+        statusCode: 200,
+        data: networks,
+      });
     } catch (error) {
       console.log(error);
+      return Exception({
+        statusCode: 200,
+        data: [],
+      });
     }
   }
 
@@ -199,103 +209,61 @@ export class WalletService {
   public async getBalanceOfToken(props: GetBalanceOfDto) {
     const { network, address, symbol } = props;
 
-    switch (network) {
-      case listNetwork.Ethereum:
-        const balanceEthereum = await this.getBalanceEthereum(address);
-
-        return balanceEthereum;
-      case listNetwork.Bsc:
-        const balanceBsc = await this.getBalanceTokenBsc(address, symbol);
-
-        return balanceBsc;
-      case listNetwork.Bitcoin:
-        const balanceBtc = await this.getBalanceBtc(address);
-
-        return balanceBtc;
-      case listNetwork.Tron:
-        const balanceTrx = await this.createAccountTrx();
-
-        return balanceTrx;
-    }
-  }
-
-  public async getBalanceTrx(address: string) {
-    const sdk = Sdk("@tron/v4.6.0#17d20r2ql9cidams");
-
-    // find address
-    const account = await this.modelAccountBtc.findOne({
-      address,
+    const find_token = await this.modelToken.findOne({
+      network,
+      symbol,
     });
 
-    if (!account) {
-      return Exception({
-        statusCode: RESPONSE_CODE.bad_request,
-        message: "Account not found",
-      });
-    }
-
-    const balance = await sdk.getTrc20TokenHolderBalances({
-      contractAddress: address,
-    });
-
-    return Exception({
-      statusCode: RESPONSE_CODE.success,
-      data: { balance },
-    });
-  }
-
-  public async getBalanceEthereum(address: string) {
-    const provider = new ethers.providers.WebSocketProvider(
-      `${env.INFURA_KEY}`,
-    );
-    const balance = await provider.getBalance(address);
-    const parseBalance = ethers.utils.formatEther(balance);
-
-    return Exception({
-      statusCode: RESPONSE_CODE.success,
-      data: { balance: parseBalance },
-    });
-  }
-
-  public async getBalanceTokenBsc(address: string, symbol: string) {
-    const token = await this.modelToken.findOne({
-      network: listNetwork.Bsc,
-      symbol: symbol,
-    });
-
-    if (!token) {
+    if (!find_token) {
       return Exception({
         statusCode: RESPONSE_CODE.bad_request,
         message: "Token does't support",
       });
     }
 
-    // find account
-    const account = await this.modelAccountEthereum
-      .findOne({
-        address,
-      })
-      .exec();
-
-    if (!account) {
+    const validateAddress = await isAddressValid(address, network);
+    if (!validateAddress) {
       return Exception({
         statusCode: RESPONSE_CODE.bad_request,
-        message: "Account not found",
+        message: "Address invalid",
       });
     }
 
-    // connect wallet
-    const wallet = this.bscService.createWallet(account.privateKey);
+    switch (network) {
+      case listNetwork.Ethereum:
+        const balanceEthereum = await this.getBalanceEthereum(address);
 
-    // connect contract token
-    const contract = this.bscService.createContract(
-      token.contractAddress,
-      ERC20_ABI,
-      wallet,
-    );
+        return balanceEthereum;
+      case listNetwork.Bsc:
+        const balanceBsc = await this.getBalanceTokenBsc(
+          address,
+          find_token.contractAddress,
+          symbol,
+        );
 
-    // get balance
-    const balance = await contract.connect(wallet).balanceOf(account.address);
+        return balanceBsc;
+      case listNetwork.Bitcoin:
+        const balanceBtc = await this.getBalanceBtc(address);
+
+        return balanceBtc;
+      case listNetwork.Trx:
+        const balanceTrx = await this.getBalanceTrx(address);
+
+        return balanceTrx;
+    }
+  }
+
+  public async getBalanceTrx(address: string) {
+    const balance = await this.tronWeb.trx.getAccount(address);
+
+    return Exception({
+      statusCode: RESPONSE_CODE.success,
+      data: { balance: balance.balance / 10 ** 6 || 0 },
+    });
+  }
+
+  public async getBalanceEthereum(address: string) {
+    const balance = await this.provider.getBalance(address);
     const parseBalance = weiToEther(balance);
 
     return Exception({
@@ -304,18 +272,64 @@ export class WalletService {
     });
   }
 
-  public async getBalanceBtc(address: string) {
-    // find token
-    const token = await this.modelAccountBtc.findOne({
-      address,
-    });
+  public async getBalanceTokenBsc(
+    address: string,
+    contractAddress: string,
+    symbol: string,
+  ) {
+    try {
+      // find account
+      const account = await this.modelAccountEthereum
+        .findOne({
+          address,
+        })
+        .exec();
 
-    if (!token) {
+      if (!account) {
+        return Exception({
+          statusCode: RESPONSE_CODE.bad_request,
+          message: "Account not found",
+        });
+      }
+
+      // connect wallet
+      const wallet = this.bscService.createWallet(account.privateKey);
+
+      if (symbol === "BNB") {
+        const balance = await wallet.getBalance();
+        const parseBalance = weiToEther(balance);
+
+        return Exception({
+          statusCode: RESPONSE_CODE.success,
+          data: { balance: parseBalance },
+        });
+      }
+
+      // connect contract token
+      const contract = this.bscService.createContract(
+        contractAddress,
+        ERC20_ABI,
+        wallet,
+      );
+      // get balance
+      const balance = await contract.connect(wallet).balanceOf(account.address);
+      const parseBalance = weiToEther(balance);
+
+      return Exception({
+        statusCode: RESPONSE_CODE.success,
+        data: { balance: parseBalance },
+      });
+    } catch (error) {
+      console.log(error);
       return Exception({
         statusCode: RESPONSE_CODE.bad_request,
-        message: "Account not found",
+        data: { balance: 0 },
+        message: "error",
       });
     }
+  }
+
+  public async getBalanceBtc(address: string) {
     const url = env.BTC_RCP + address;
 
     const fetchData = await fetch(url);

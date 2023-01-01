@@ -1,4 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { listNetwork } from "@utils/constant/network";
 import { Document } from "mongoose";
 
 export type NetworkType = NetWork & Document;
@@ -9,7 +10,7 @@ export class NetWork {
   name: string;
 
   @Prop({ required: true })
-  network: string;
+  network: listNetwork;
 
   @Prop({ required: false })
   addressRegex: string;

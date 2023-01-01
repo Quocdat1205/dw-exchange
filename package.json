@@ -30,6 +30,7 @@
     "bip39": "^3.0.4",
     "bitcoin-address-validation": "^2.2.1",
     "bitcoinjs-lib": "^6.1.0",
+    "bitcore-lib": "^8.25.40",
     "bn.js": "^5.2.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
@@ -46,6 +47,7 @@
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.2.0",
+    "send-crypto": "^0.2.38",
     "tron-create-address": "^0.1.10",
     "tronweb": "^5.0.0",
     "web3": "^1.8.1"

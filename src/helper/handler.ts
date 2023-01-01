@@ -3,6 +3,7 @@ import { listNetwork } from "@utils/constant/network";
 import Web3 from "web3";
 import { validate, Network } from "bitcoin-address-validation";
 import Sdk from "api";
+import env from "@utils/constant/env";
 
 export const etherToWei = (amount: number | string): BigNumber =>
   ethers.utils.parseEther(amount.toString());
@@ -16,7 +17,10 @@ export const isAddressValid = async (address: string, network: listNetwork) => {
   }
 
   if (network === listNetwork.Bitcoin) {
-    return validate(address, Network.mainnet);
+    return validate(
+      address,
+      env.NODE_ENV !== "production" ? Network.testnet : Network.mainnet,
+    );
   }
 
   // validate tron network
@@ -24,7 +28,7 @@ export const isAddressValid = async (address: string, network: listNetwork) => {
   const { data } = await sdk.validateaddress({
     address,
   });
-
   console.log(data);
+
   return data.result;
 };
