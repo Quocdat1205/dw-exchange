@@ -20,7 +20,11 @@ import {
   CheckValidAddressDto,
   DWNetworkDto,
 } from "./account.dto";
-import { CreateAccountDto, GetBalanceOfDto } from "./account.dto";
+import {
+  CreateAccountDto,
+  GetBalanceOfDto,
+  GetInfoTokenBySmartContractDto,
+} from "./account.dto";
 import { listNetwork } from "@utils/constant/network";
 import TronWeb from "tronweb";
 import crypto from "crypto";
@@ -28,7 +32,7 @@ import { LoggerService } from "@modules/logger/logger.service";
 import CoinKey from "coinkey";
 import { isAddressValid } from "src/helper/handler";
 import { Exception } from "@config/exception.config";
-import { RESPONSE_CODE } from "@utils/constant/response-code";
+import { RESPONSE_CODE, RESPONSE_MSG } from "@utils/constant/response-code";
 import { ethers } from "ethers";
 import { BscService } from "@modules/bsc/bsc.service";
 import { ERC20_ABI } from "@utils/abi/ERC20_ABI";
@@ -72,16 +76,12 @@ export class WalletService {
       switch (network) {
         case listNetwork.Ethereum:
           return await this.createAccountEthereum();
-          break;
         case listNetwork.Bsc:
           return await this.createAccountEthereum();
-          break;
         case listNetwork.Bitcoin:
           return await this.createAccountBitcoin();
-          break;
         case listNetwork.Trx:
           return await this.createAccountTrx();
-          break;
       }
     } catch (error) {
       console.error(error);
@@ -112,7 +112,7 @@ export class WalletService {
       ...newAccount,
     }).save();
 
-    return { address: account.address };
+    return { address: account.address, privateKey: account.privateKey };
   }
 
   private async createAccountTrx(): Promise<ResponseCreateAccountDto> {
@@ -137,7 +137,7 @@ export class WalletService {
       hex: wallet.address.hex,
     }).save();
 
-    return { address: wallet.base58 };
+    return { address: wallet.base58, privateKey: wallet.privateKey };
   }
 
   private async createAccountBitcoin(): Promise<ResponseCreateAccountDto> {
@@ -146,48 +146,32 @@ export class WalletService {
       const address = wallet.publicAddress;
       const privateKey = wallet.privateKey.toString("hex");
 
-      console.log(
-        "SAVE BUT DO NOT SHARE THIS:",
-        wallet.privateKey.toString("hex"),
-      );
-
-      console.log("Address:", wallet.publicAddress);
-
       await new this.modelAccountBtc({
         address,
         privateKey,
       }).save();
 
-      return { address };
+      return { address, privateKey };
     } catch (error) {
       console.log(error);
     }
   }
 
   public async validAddress(props: CheckValidAddressDto) {
-    const { address } = props;
+    const { address, network } = props;
 
     try {
-      const networks = [];
-      const listNetwork = await this.modelNetwork.find().exec();
-
-      for (const network of listNetwork) {
-        const isValid = await isAddressValid(address, network.network);
-
-        if (isValid) {
-          networks.push({ name: network.name, network: network.network });
-        }
-      }
+      const isValid = await isAddressValid(address, network);
 
       return Exception({
-        statusCode: 200,
-        data: networks,
+        statusCode: RESPONSE_CODE.success,
+        message: isValid,
       });
     } catch (error) {
       console.log(error);
       return Exception({
-        statusCode: 200,
-        data: [],
+        statusCode: RESPONSE_CODE.success,
+        message: RESPONSE_MSG.success,
       });
     }
   }
@@ -339,6 +323,42 @@ export class WalletService {
     return Exception({
       statusCode: RESPONSE_CODE.success,
       data: { balance },
+    });
+  }
+
+  public async getInfoTokenBySmartcontract(
+    props: GetInfoTokenBySmartContractDto,
+  ) {
+    const { network, contractAddress } = props;
+    const isValid = await isAddressValid(contractAddress, network);
+
+    if (!isValid) {
+      return Exception({
+        statusCode: RESPONSE_CODE.bad_request,
+        message: "Invalid address",
+      });
+    }
+
+    const contract = await this.modelToken.findOne({
+      network,
+      contractAddress,
+    });
+
+    if (!contract) {
+      return Exception({
+        statusCode: RESPONSE_CODE.bad_request,
+        message: "Token does't support",
+      });
+    }
+
+    return Exception({
+      statusCode: RESPONSE_CODE.success,
+      data: {
+        contract: contract.contractAddress,
+        name: contract.name,
+        symbol: contract.symbol,
+        decimals: contract.decimals,
+      },
     });
   }
 }

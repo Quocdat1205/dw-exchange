@@ -16,10 +16,10 @@ async function bootstrap() {
 
   appConfig(app);
 
-  if (!env.isProduction) {
-    const document = SwaggerModule.createDocument(app, configSwagger);
-    SwaggerModule.setup("api", app, document);
-  }
+  // if (!env.isProduction) {
+  const document = SwaggerModule.createDocument(app, configSwagger);
+  SwaggerModule.setup("api", app, document);
+  // }
 
   app.enableShutdownHooks();
 

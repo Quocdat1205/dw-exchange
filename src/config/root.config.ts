@@ -7,6 +7,7 @@ import env from "@utils/constant/env";
 import { MongooseModule } from "@nestjs/mongoose";
 import { WalletModule } from "@modules/account/account.module";
 import { TransactionModule } from "@modules/transaction/transaction.module";
+import { TrackerModule } from "@modules/tracker/tracker.module";
 
 export const RootModule = [
   ConfigModule.forRoot({
@@ -25,4 +26,5 @@ export const RootModule = [
   MongooseModule.forRoot(env.MONGO_URL),
   WalletModule,
   TransactionModule,
+  TrackerModule,
 ];

@@ -9,7 +9,7 @@ import {
   WithDraw,
   WithDrawType,
 } from "@schema";
-import { WithDrawTokenDto } from "./transaction.dto";
+import { GetTransactionHistoryDto, WithDrawTokenDto } from "./transaction.dto";
 import { listNetwork } from "@utils/constant/network";
 import { etherToWei, isAddressValid } from "src/helper/handler";
 import { Exception } from "@config/exception.config";
@@ -17,6 +17,7 @@ import { RESPONSE_CODE } from "@utils/constant/response-code";
 import { BscService } from "@modules/bsc/bsc.service";
 import CryptoAccount from "send-crypto";
 import TronWeb from "tronweb";
+// import { Interval } from "@nestjs/schedule";
 
 const memo = "tttttttttttttttransfer";
 
@@ -246,5 +247,55 @@ export class TransactionService {
         message: "Transfer error, please check again",
       });
     }
+  }
+
+  private async getTransactionHistory() {
+    const block = await this.web3.eth.getBlock("finalized");
+    const number = block.number;
+    console.log(number);
+
+    const transactions = block.transactions;
+
+    if (block != null && transactions != null) {
+      for (const txHash of block.transactions) {
+        const tx = await this.web3.eth.getTransaction(txHash);
+        if (tx.to) {
+          if (
+            "0x0d17d1de09c0841c9e023a2a21aa7ea8851b0fb8" == tx.to.toLowerCase()
+          ) {
+            console.log(
+              "from: " +
+                tx.from.toLowerCase() +
+                " to: " +
+                tx.to.toLowerCase() +
+                " value: " +
+                tx.value,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  // @Interval("Tracker transaction", 1000 * 30)
+  async trackerTransaction() {
+    console.log("Tracker transaction");
+
+    await this.getTransactionHistory();
+  }
+
+  public async getTracsactionHitory(props: GetTransactionHistoryDto) {
+    const { network, address, limit } = props;
+    const history = await this.modelWithdraw
+      .find({
+        network,
+        to: address,
+      })
+      .limit(limit);
+
+    return Exception({
+      statusCode: RESPONSE_CODE.success,
+      data: history,
+    });
   }
 }

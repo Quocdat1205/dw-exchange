@@ -1,8 +1,9 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEnum, IsPositive, IsString } from "class-validator";
+import { IsEnum, IsPositive, IsString, IsNumber } from "class-validator";
 import { listNetwork } from "@utils/constant/network";
 import { Transform } from "class-transformer";
 import { Transformation } from "@utils/pipe/transform.pipe";
+
 export class WithDrawTokenDto {
   @ApiProperty({
     type: String,
@@ -40,4 +41,59 @@ export class WithDrawTokenDto {
   @Transform(({ value }) => Transformation.checkPositive(value))
   @IsPositive()
   amount: number;
+}
+
+export class GetTransactionHistoryDto {
+  @ApiProperty({
+    type: String,
+    title: "The type of network you want to create an account for",
+    description: `Network in [Bitcoin, Ethereum, TRX, BSC]`,
+    default: "Bitcoin",
+  })
+  @IsEnum(listNetwork)
+  network: listNetwork;
+
+  @ApiProperty({
+    type: String,
+    title: "Address query",
+    description: `Address`,
+    default: "TSrsPar2bjxSUepC3if4ztRnb7VxsnRNjC",
+  })
+  @IsString()
+  address: string;
+
+  @ApiProperty({
+    type: Number,
+    title: "Amount transaction",
+    default: 5,
+  })
+  @IsNumber()
+  limit: number;
+
+  @ApiProperty({
+    type: Number,
+    title: "Send or receive",
+    description: `null: all, 0: receive, 1: send`,
+    default: 1,
+  })
+  @IsNumber()
+  category: number;
+
+  @ApiProperty({
+    type: String,
+    title: "Contract address for token",
+    description: `Contract address`,
+    default: "TSrsPar2bjxSUepC3if4ztRnb7VxsnRNjC",
+  })
+  @IsString()
+  contractAddress: string;
+
+  @ApiProperty({
+    type: String,
+    title: "Symbol",
+    description: `Symbol token`,
+    default: "BTC",
+  })
+  @IsString()
+  symbol: string;
 }

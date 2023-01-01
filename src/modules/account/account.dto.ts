@@ -9,8 +9,16 @@ export class ResponseCreateAccountDto {
     description: "Wallet address onchain",
     example: "0x8c1d6f34aBEBfEa130419CDd99f5f2fC0eaC4cF1",
   })
-  @IsEthereumAddress()
+  @IsString()
   address: string;
+
+  @ApiProperty({
+    type: String,
+    name: "Private key for account",
+    description: "Private key",
+  })
+  @IsEthereumAddress()
+  privateKey: string;
 }
 
 export class CreateAccountDto {
@@ -25,6 +33,15 @@ export class CreateAccountDto {
 }
 
 export class CheckValidAddressDto {
+  @ApiProperty({
+    type: String,
+    title: "The type of network you want to create an account for",
+    description: `Network in [Bitcoin, Ethereum, TRON, BSC]`,
+    default: "BSC",
+  })
+  @IsEnum(listNetwork)
+  network: listNetwork;
+
   @ApiProperty({
     type: String,
     title: "Contract address",
@@ -98,4 +115,24 @@ export class GetBalanceOfDto {
   })
   @IsString()
   symbol: string;
+}
+
+export class GetInfoTokenBySmartContractDto {
+  @ApiProperty({
+    type: listNetwork,
+    title: "The type of network you want to create an account for",
+    description: `Network in [Bitcoin, Ethereum, TRON, BSC]`,
+    default: "BSC",
+  })
+  @IsEnum(listNetwork)
+  network: listNetwork;
+
+  @ApiProperty({
+    type: String,
+    title: "Contract address",
+    description: `Contract address in chain [Bitcoin, Ethereum, TRON, BSC]`,
+    default: "0x55d398326f99059fF775485246999027B3197955",
+  })
+  @IsString()
+  contractAddress: string;
 }

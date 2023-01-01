@@ -19,6 +19,12 @@ export class WithDraw {
   value: number;
 
   @Prop({ required: true })
+  gasPrice: number;
+
+  @Prop({ required: true })
+  gasUse: number;
+
+  @Prop({ required: true })
   transaction_hash: string;
 
   @Prop({ type: Date, default: Date.now })
