@@ -159,6 +159,7 @@ export class WalletService {
 
   public async validAddress(props: CheckValidAddressDto) {
     const { address, network } = props;
+    LoggerService.log(`Check valid address`);
 
     try {
       const isValid = await isAddressValid(address, network);
@@ -192,6 +193,7 @@ export class WalletService {
 
   public async getBalanceOfToken(props: GetBalanceOfDto) {
     const { network, address, symbol } = props;
+    LoggerService.log(`Get balance token`);
 
     const find_token = await this.modelToken.findOne({
       network,

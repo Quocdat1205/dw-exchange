@@ -1,5 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEnum, IsPositive, IsString, IsNumber } from "class-validator";
+import {
+  IsEnum,
+  IsPositive,
+  IsString,
+  IsNumber,
+  IsOptional,
+} from "class-validator";
 import { listNetwork } from "@utils/constant/network";
 import { Transform } from "class-transformer";
 import { Transformation } from "@utils/pipe/transform.pipe";
@@ -16,12 +22,30 @@ export class WithDrawTokenDto {
 
   @ApiProperty({
     type: String,
+    title: "Wallet address transfer",
+    description: "Wallet address transfer",
+    default: "bc1qafa2rral557kn5n792f4v0s7s5u5u58aj5dz48",
+  })
+  @IsString()
+  fromAddress: string;
+
+  @ApiProperty({
+    type: String,
     title: "Wallet address withdraw",
     description: "Wallet address withdraw",
     default: "bc1qafa2rral557kn5n792f4v0s7s5u5u58aj5dz48",
   })
   @IsString()
-  to: string;
+  toAddress: string;
+
+  @ApiProperty({
+    type: String,
+    title: "Wallet address withdraw",
+    description: "Wallet address withdraw",
+    default: "bc1qafa2rral557kn5n792f4v0s7s5u5u58aj5dz48",
+  })
+  @IsString()
+  privateKey: string;
 
   @ApiProperty({
     type: String,
@@ -34,13 +58,22 @@ export class WithDrawTokenDto {
 
   @ApiProperty({
     type: Number,
-    title: "Amount token",
+    title: "Amount token transfer",
     description: "Amount tokne",
     example: 0.0001,
   })
   @Transform(({ value }) => Transformation.checkPositive(value))
   @IsPositive()
   amount: number;
+
+  @ApiProperty({
+    type: Number,
+    title: "Contract address transfer",
+    description: "Amount tokne",
+    example: "0x55d398326f99059ff775485246999027b3197955",
+  })
+  @IsOptional()
+  contractAddress: string;
 }
 
 export class GetTransactionHistoryDto {

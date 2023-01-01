@@ -10,4 +10,6 @@ export const RESPONSE_MSG = {
   create_succesSs: "Success",
   bad_request: "Bad request",
   forbidden: "Forbidden",
+  insufficient: "Insufficient balance to broadcast transaction",
+  token_not_support: "Token does't support",
 };

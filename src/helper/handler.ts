@@ -28,7 +28,6 @@ export const isAddressValid = async (address: string, network: listNetwork) => {
   const { data } = await sdk.validateaddress({
     address,
   });
-  console.log(data);
 
   return data.result;
 };

@@ -10,7 +10,16 @@ export class WithDraw {
   network: listNetwork;
 
   @Prop({ required: true })
+  from: string;
+
+  @Prop({ required: true })
   to: string;
+
+  @Prop({ required: true })
+  category: number;
+
+  @Prop({ required: false })
+  contractAddress: number;
 
   @Prop({ required: true })
   symbol: string;
@@ -25,7 +34,19 @@ export class WithDraw {
   gasUse: number;
 
   @Prop({ required: true })
+  blockNumber: number;
+
+  @Prop({ required: true })
   transaction_hash: string;
+
+  @Prop({ required: true })
+  confirmations: number;
+
+  @Prop({ required: true })
+  cumulativeGasUsed: number;
+
+  @Prop({ required: true })
+  effectiveGasPrice: number;
 
   @Prop({ type: Date, default: Date.now })
   createdAt?: Date;

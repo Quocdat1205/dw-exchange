@@ -4,22 +4,25 @@ import { InjectModel } from "@nestjs/mongoose";
 import Web3API from "web3";
 import env from "@utils/constant/env";
 import {
-  AccountAdmin,
-  AccountAdminType,
   WithDraw,
   WithDrawType,
+  BitcoinTracker,
+  BitcoinTrackerType,
 } from "@schema";
 import { GetTransactionHistoryDto, WithDrawTokenDto } from "./transaction.dto";
 import { listNetwork } from "@utils/constant/network";
 import { etherToWei, isAddressValid } from "src/helper/handler";
 import { Exception } from "@config/exception.config";
-import { RESPONSE_CODE } from "@utils/constant/response-code";
+import { RESPONSE_CODE, RESPONSE_MSG } from "@utils/constant/response-code";
 import { BscService } from "@modules/bsc/bsc.service";
 import CryptoAccount from "send-crypto";
 import TronWeb from "tronweb";
+import { ERC20_ABI } from "@utils/abi/ERC20_ABI";
 // import { Interval } from "@nestjs/schedule";
+import { weiToEther } from "src/helper/handler";
 
-const memo = "tttttttttttttttransfer";
+// const URL_BLOCKCHAIN = "https://blockchain.info/tx";
+const memo = "transfer";
 
 @Injectable()
 export class TransactionService {
@@ -30,10 +33,10 @@ export class TransactionService {
   private eventServer: any;
 
   constructor(
-    @InjectModel(AccountAdmin.name)
-    private readonly modelAccountAdmin: Model<AccountAdminType>,
     @InjectModel(WithDraw.name)
     private readonly modelWithdraw: Model<WithDrawType>,
+    @InjectModel(BitcoinTracker.name)
+    private readonly modelBitcoinTracker: Model<BitcoinTrackerType>,
     private readonly bscService: BscService,
   ) {
     this.web3 = new Web3API(
@@ -45,162 +48,287 @@ export class TransactionService {
     this.eventServer = new this.HttpProvider("https://api.trongrid.io");
   }
 
-  public async withDrawToken(props: WithDrawTokenDto) {
-    const { network, to, symbol, amount } = props;
-    // validate address and network
-    const validateAddress = await isAddressValid(to, network);
-    if (!validateAddress) {
+  public async sendToken(props: WithDrawTokenDto) {
+    const {
+      network,
+      fromAddress,
+      toAddress,
+      symbol,
+      privateKey,
+      amount,
+      contractAddress,
+    } = props;
+
+    // validate address transfer, receive and network
+    const validAddressReceive = await isAddressValid(toAddress, network);
+    const validAddressTransfer = await isAddressValid(fromAddress, network);
+    if (!validAddressReceive || !validAddressTransfer) {
       return Exception({
         statusCode: RESPONSE_CODE.bad_request,
-        message: "Address invalid",
+        message: "Address receive or send invalid for network",
       });
+    }
+
+    if (!contractAddress) {
+      const validContractAddress = await isAddressValid(
+        contractAddress,
+        network,
+      );
+      if (!validContractAddress)
+        return Exception({
+          statusCode: RESPONSE_CODE.bad_request,
+          message: "Address invalid for network",
+        });
     }
 
     // transfer and log
     switch (network) {
       case listNetwork.Ethereum:
-        const transferEth = await this.transferEthereum(to, amount);
+        const transferEth = await this.transferEthereum(
+          toAddress,
+          amount,
+          privateKey,
+          symbol,
+        );
         return transferEth;
       case listNetwork.Bsc:
-        const transferBsc = await this.transferBsc(to, amount);
+        const transferBsc = await this.transferBsc(
+          toAddress,
+          amount,
+          privateKey,
+          symbol,
+          contractAddress,
+        );
         return transferBsc;
       case listNetwork.Bitcoin:
-        const transferBtc = await this.transferBtc(to, amount);
+        const transferBtc = await this.transferBtc(
+          toAddress,
+          amount,
+          privateKey,
+        );
         return transferBtc;
       case listNetwork.Trx:
-        const transferTrx = await this.transferTrx(to, amount);
+        const transferTrx = await this.transferTrx(
+          fromAddress,
+          toAddress,
+          amount,
+          privateKey,
+        );
         return transferTrx;
     }
   }
 
-  private async transferBsc(to: string, amount: number) {
+  private async transferBsc(
+    to: string,
+    amount: number,
+    privateKey: string,
+    symbol: string,
+    contractAddress: string,
+  ) {
     try {
-      const walletAdmin = await this.modelAccountAdmin.findOne({
-        network: listNetwork.Bsc,
-      });
+      const connectWallet = this.bscService.createWallet(privateKey);
 
-      if (!walletAdmin)
-        return Exception({
-          statusCode: RESPONSE_CODE.bad_request,
-          message: "Account send not found",
+      if (symbol === "BNB") {
+        const balance = weiToEther(await connectWallet.getBalance());
+
+        if (balance < amount) {
+          return Exception({
+            statusCode: RESPONSE_CODE.bad_request,
+            message: RESPONSE_MSG.insufficient,
+          });
+        }
+        const tx = await connectWallet.sendTransaction({
+          to,
+          value: etherToWei(`${amount}`),
         });
 
-      const connectWallet = this.bscService.createWallet(
-        walletAdmin.privateKey,
-      );
+        const wait = await tx.wait();
 
-      // transfer token and log
-      const tx = await connectWallet.sendTransaction({
-        to,
-        value: etherToWei(`${amount}`),
-      });
+        const result = {
+          network: listNetwork.Bsc,
+          from: wait.from,
+          to: tx.to,
+          symbol: "BNB",
+          value: weiToEther(tx.value),
+          contractAddress: wait.contractAddress,
+          gasPrice: weiToEther(tx.gasPrice),
+          gasUse: weiToEther(wait.gasUsed),
+          blockNumber: wait.blockNumber,
+          transaction_hash: tx.hash,
+          category: 1,
+          confirmations: wait.confirmations,
+          cumulativeGasUsed: weiToEther(wait.cumulativeGasUsed),
+          effectiveGasPrice: weiToEther(wait.effectiveGasPrice),
+        };
 
-      console.log(tx);
+        await new this.modelWithdraw({ ...result }).save();
 
-      await new this.modelWithdraw({
-        network: listNetwork.Bsc,
-        to,
-        symbol: "BNB",
-        value: amount,
-        transaction_hash: tx.hash,
-      }).save();
+        return Exception({
+          statusCode: RESPONSE_CODE.success,
+          message: RESPONSE_MSG.success,
+          data: result,
+        });
+      } else {
+        const contract = this.bscService.createContract(
+          contractAddress,
+          ERC20_ABI,
+          connectWallet,
+        );
 
-      await tx.wait();
+        const balance = await contract
+          .connect(connectWallet)
+          .balanceOf(await connectWallet.getAddress());
 
-      return true;
+        if (weiToEther(balance) < amount) {
+          return Exception({
+            statusCode: RESPONSE_CODE.bad_request,
+            message: RESPONSE_MSG.insufficient,
+          });
+        }
+
+        const tx = await contract
+          .connect(connectWallet)
+          .transfer(to, etherToWei(`${amount}`));
+
+        const wait = await tx.wait();
+
+        const result = {
+          network: listNetwork.Bsc,
+          from: wait.from,
+          to: tx.to,
+          symbol: "BNB",
+          value: weiToEther(tx.value),
+          contractAddress: wait.contractAddress,
+          gasPrice: weiToEther(tx.gasPrice),
+          gasUse: weiToEther(wait.gasUsed),
+          blockNumber: wait.blockNumber,
+          transaction_hash: tx.hash,
+          category: 1,
+          confirmations: wait.confirmations,
+          cumulativeGasUsed: weiToEther(wait.cumulativeGasUsed),
+          effectiveGasPrice: weiToEther(wait.effectiveGasPrice),
+        };
+
+        await new this.modelWithdraw({ ...result }).save();
+
+        return Exception({
+          statusCode: RESPONSE_CODE.success,
+          message: RESPONSE_MSG.success,
+          data: tx.hash,
+        });
+      }
     } catch (error) {
       console.log(error);
-      return false;
+      return Exception({
+        statusCode: RESPONSE_CODE.bad_request,
+        message: error.message,
+      });
     }
   }
 
-  private async transferEthereum(to: string, amount: number) {
-    const walletAdmin = await this.modelAccountAdmin.findOne({
-      network: listNetwork.Ethereum,
-    });
-
-    if (!walletAdmin)
-      return Exception({
-        statusCode: RESPONSE_CODE.bad_request,
-        message: "Account send not found",
-      });
-
+  private async transferEthereum(
+    to: string,
+    amount: number,
+    privateKey: string,
+    symbol: string,
+  ) {
     try {
+      if (symbol !== "ETH") {
+        return Exception({
+          statusCode: RESPONSE_CODE.bad_request,
+          message: RESPONSE_MSG.token_not_support,
+        });
+      }
+
       const transaction = await this.web3.eth.accounts.signTransaction(
         {
           to,
           value: `${etherToWei(amount)}`,
           gas: 2000000,
         },
-        walletAdmin.privateKey,
+        privateKey,
       );
-
-      await new this.modelWithdraw({
-        network: listNetwork.Ethereum,
-        to,
-        symbol: "ETH",
-        value: amount,
-        transaction_hash: transaction.transactionHash,
-      }).save();
 
       const tx = await this.web3.eth.sendSignedTransaction(
         transaction.rawTransaction,
       );
 
-      console.log(tx);
+      const result = {
+        network: listNetwork.Ethereum,
+        from: tx.from,
+        to: tx.to,
+        symbol: "ETH",
+        value: amount,
+        contractAddress: tx.contractAddress,
+        gasPrice: 0,
+        gasUse: tx.gasUsed,
+        blockNumber: tx.blockNumber,
+        transaction_hash: tx.transactionHash,
+        category: 1,
+        confirmations: 0,
+        cumulativeGasUsed: tx.cumulativeGasUsed,
+        effectiveGasPrice: tx.effectiveGasPrice,
+      };
 
-      return true;
+      await new this.modelWithdraw({ ...result }).save();
+
+      return Exception({
+        statusCode: RESPONSE_CODE.success,
+        message: RESPONSE_MSG.success,
+        data: tx.transactionHash,
+      });
     } catch (error) {
       console.error(error);
-      return false;
+      return Exception({
+        statusCode: RESPONSE_CODE.bad_request,
+        message: error.message,
+      });
     }
   }
 
-  private async transferBtc(to: string, amount: number) {
-    const walletAdmin = await this.modelAccountAdmin.findOne({
-      network: listNetwork.Bitcoin,
-    });
-
-    // tb1q56zyk473zmm6lvnfvaa7alukyw7t6klqc6fju6
-    if (!walletAdmin)
-      return Exception({
-        statusCode: RESPONSE_CODE.bad_request,
-        message: "Account send not found",
-      });
-
-    const account = new CryptoAccount(walletAdmin.privateKey);
-    // const balance = await account.getBalance("BTC");
-    // console.log(balance);
-
-    const txHash = await account
-      .send(to, 0.0001, "BTC")
-      .on("transactionHash", console.log)
-      .on("confirmation", console.log);
-
-    await new this.modelWithdraw({
-      network: listNetwork.Bitcoin,
-      to,
-      symbol: "BTC",
-      value: amount,
-      transaction_hash: txHash,
-    }).save();
-
-    return txHash;
-  }
-
-  private async transferTrx(to: string, amount: number) {
+  private async transferBtc(to: string, amount: number, privateKey: string) {
     try {
-      const walletAdmin = await this.modelAccountAdmin.findOne({
-        network: listNetwork.Trx,
-      });
+      const account = new CryptoAccount(privateKey);
+      const balance = await account.getBalance("BTC");
 
-      if (!walletAdmin)
+      if (balance < amount) {
         return Exception({
           statusCode: RESPONSE_CODE.bad_request,
-          message: "Account send not found",
+          message: RESPONSE_MSG.insufficient,
         });
+      }
 
-      const privateKey = walletAdmin.privateKey;
+      const tx = await account
+        .send(to, amount, "BTC")
+        .on("transactionHash", console.log)
+        .on("confirmation", console.log);
+
+      await new this.modelBitcoinTracker({
+        transactionHash: tx,
+      }).save();
+
+      return Exception({
+        statusCode: RESPONSE_CODE.success,
+        message: RESPONSE_MSG.success,
+        data: tx,
+      });
+    } catch (error) {
+      console.log(error);
+
+      return Exception({
+        statusCode: RESPONSE_CODE.bad_request,
+        message: error.message,
+      });
+    }
+  }
+
+  private async transferTrx(
+    from: string,
+    to: string,
+    amount: number,
+    privateKey: string,
+  ) {
+    try {
       const tronWeb = new TronWeb(
         this.fullNode,
         this.solidityNode,
@@ -220,31 +348,36 @@ export class TransactionService {
       const signedTxn = await tronWeb.trx.sign(unSignedTxnWithNote);
       const ret = await tronWeb.trx.sendRawTransaction(signedTxn);
 
-      await new this.modelWithdraw({
+      const result = {
         network: listNetwork.Trx,
+        from,
         to,
         symbol: "TRX",
         value: amount,
-        transaction_hash: ret.txid || signedTxn.txID,
-      }).save();
+        contractAddress: null,
+        gasPrice: 0,
+        gasUse: 0,
+        blockNumber: 0,
+        transaction_hash: ret.txid,
+        category: 1,
+        confirmations: 0,
+        cumulativeGasUsed: 0,
+        effectiveGasPrice: 0,
+      };
+
+      await new this.modelWithdraw({ ...result }).save();
 
       return Exception({
         statusCode: RESPONSE_CODE.success,
         data: {
-          to: to,
+          message: RESPONSE_MSG.success,
           transactionHash: ret.txid || signedTxn.txID,
-          value: amount,
         },
       });
     } catch (error) {
-      console.log(error);
       return Exception({
         statusCode: RESPONSE_CODE.bad_request,
-        data: {
-          to: to,
-          value: amount,
-        },
-        message: "Transfer error, please check again",
+        message: RESPONSE_MSG.insufficient,
       });
     }
   }

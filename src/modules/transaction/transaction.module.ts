@@ -18,6 +18,8 @@ import {
   AccountAdminSchema,
   WithDraw,
   WithDrawSchema,
+  BitcoinTracker,
+  BitcoinTrackerSchema,
 } from "@schema";
 import { BscService } from "@modules/bsc/bsc.service";
 
@@ -31,6 +33,7 @@ import { BscService } from "@modules/bsc/bsc.service";
       { name: TokenConfig.name, schema: TokenConfigSchema },
       { name: AccountAdmin.name, schema: AccountAdminSchema },
       { name: WithDraw.name, schema: WithDrawSchema },
+      { name: BitcoinTracker.name, schema: BitcoinTrackerSchema },
     ]),
   ],
   controllers: [TransactionController],

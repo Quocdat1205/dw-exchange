@@ -16,6 +16,6 @@ export class TransactionController {
 
   @Post(ROUTER.SEND)
   async withDrawToken(@Body() body: WithDrawTokenDto) {
-    return this.transactionService.withDrawToken(body);
+    return this.transactionService.sendToken(body);
   }
 }
