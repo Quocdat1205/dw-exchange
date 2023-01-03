@@ -31,3 +31,17 @@ export const isAddressValid = async (address: string, network: listNetwork) => {
 
   return data.result;
 };
+
+export const sleep = (ms: number) => {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+export const checkObject = (obj: { [key: string]: any }) => {
+  const check = Object.keys(obj).length;
+
+  if (check === 0) {
+    return false;
+  }
+
+  return true;
+};

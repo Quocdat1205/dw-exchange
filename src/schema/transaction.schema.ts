@@ -6,7 +6,7 @@ export type TransactionHistoryType = TransactionHistory & Document;
 
 @Schema()
 export class TransactionHistory {
-  @Prop({ required: true })
+  @Prop({ required: true, enum: listNetwork, default: listNetwork.Bitcoin })
   network: listNetwork;
 
   @Prop({ required: true })

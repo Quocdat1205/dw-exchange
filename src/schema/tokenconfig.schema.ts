@@ -6,7 +6,7 @@ export type TokenConfigType = TokenConfig & Document;
 
 @Schema()
 export class TokenConfig {
-  @Prop({ required: true })
+  @Prop({ required: true, enum: listNetwork, default: listNetwork.Bitcoin })
   network: listNetwork;
 
   @Prop({ required: true })

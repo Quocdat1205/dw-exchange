@@ -49,6 +49,7 @@
     "rxjs": "^7.2.0",
     "send-crypto": "^0.2.38",
     "tron-create-address": "^0.1.10",
+    "tron-format-address": "^0.1.8",
     "tronweb": "^5.0.0",
     "web3": "^1.8.1"
   },
@@ -74,7 +75,7 @@
     "ts-loader": "^9.2.3",
     "ts-node": "^10.0.0",
     "tsconfig-paths": "4.0.0",
-    "typescript": "^4.3.5"
+    "typescript": "~4.3.5"
   },
   "jest": {
     "moduleFileExtensions": [

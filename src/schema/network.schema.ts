@@ -9,7 +9,7 @@ export class NetWork {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, enum: listNetwork, default: listNetwork.Bitcoin })
   network: listNetwork;
 
   @Prop({ required: false })

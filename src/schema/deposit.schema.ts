@@ -2,10 +2,10 @@ import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 import { listNetwork } from "@utils/constant/network";
 
-export type WithDrawType = WithDraw & Document;
+export type DepositType = Deposit & Document;
 
 @Schema()
-export class WithDraw {
+export class Deposit {
   @Prop({ required: true, enum: listNetwork, default: listNetwork.Bitcoin })
   network: listNetwork;
 
@@ -19,7 +19,7 @@ export class WithDraw {
   category: number;
 
   @Prop({ required: false })
-  contractAddress: number;
+  contractAddress: string | null;
 
   @Prop({ required: true })
   symbol: string;
@@ -55,4 +55,4 @@ export class WithDraw {
   updatedAt?: Date;
 }
 
-export const WithDrawSchema = SchemaFactory.createForClass(WithDraw);
+export const DepositSchema = SchemaFactory.createForClass(Deposit);

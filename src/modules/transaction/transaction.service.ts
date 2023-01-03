@@ -21,7 +21,6 @@ import { ERC20_ABI } from "@utils/abi/ERC20_ABI";
 // import { Interval } from "@nestjs/schedule";
 import { weiToEther } from "src/helper/handler";
 
-// const URL_BLOCKCHAIN = "https://blockchain.info/tx";
 const memo = "transfer";
 
 @Injectable()
@@ -43,9 +42,9 @@ export class TransactionService {
       new Web3API.providers.HttpProvider(env.INFURA_KEY_RCP),
     );
     this.HttpProvider = TronWeb.providers.HttpProvider;
-    this.fullNode = new this.HttpProvider("https://api.trongrid.io");
-    this.solidityNode = new this.HttpProvider("https://api.trongrid.io");
-    this.eventServer = new this.HttpProvider("https://api.trongrid.io");
+    this.fullNode = new this.HttpProvider(env.TRX_RPC);
+    this.solidityNode = new this.HttpProvider(env.TRX_RPC);
+    this.eventServer = new this.HttpProvider(env.TRX_RPC);
   }
 
   public async sendToken(props: WithDrawTokenDto) {
@@ -382,53 +381,27 @@ export class TransactionService {
     }
   }
 
-  private async getTransactionHistory() {
-    const block = await this.web3.eth.getBlock("finalized");
-    const number = block.number;
-    console.log(number);
-
-    const transactions = block.transactions;
-
-    if (block != null && transactions != null) {
-      for (const txHash of block.transactions) {
-        const tx = await this.web3.eth.getTransaction(txHash);
-        if (tx.to) {
-          if (
-            "0x0d17d1de09c0841c9e023a2a21aa7ea8851b0fb8" == tx.to.toLowerCase()
-          ) {
-            console.log(
-              "from: " +
-                tx.from.toLowerCase() +
-                " to: " +
-                tx.to.toLowerCase() +
-                " value: " +
-                tx.value,
-            );
-          }
-        }
-      }
-    }
-  }
-
-  // @Interval("Tracker transaction", 1000 * 30)
-  async trackerTransaction() {
-    console.log("Tracker transaction");
-
-    await this.getTransactionHistory();
-  }
-
   public async getTracsactionHitory(props: GetTransactionHistoryDto) {
-    const { network, address, limit } = props;
-    const history = await this.modelWithdraw
-      .find({
-        network,
-        to: address,
-      })
-      .limit(limit);
+    const { network, address, limit, category } = props;
+
+    // 1: send, -: receive
+    if (category === 1) {
+      const history = await this.modelWithdraw
+        .find({
+          network,
+          to: address,
+        })
+        .limit(limit);
+
+      return Exception({
+        statusCode: RESPONSE_CODE.success,
+        data: history,
+      });
+    }
 
     return Exception({
       statusCode: RESPONSE_CODE.success,
-      data: history,
+      data: [],
     });
   }
 }

@@ -3,9 +3,26 @@ import { LoggerService } from "@modules/logger/logger.service";
 import { MongooseModule } from "@nestjs/mongoose";
 import { TrackerService } from "./tracker.service";
 import { BscService } from "@modules/bsc/bsc.service";
+import {
+  BitcoinTracker,
+  BitcoinTrackerSchema,
+  Deposit,
+  DepositSchema,
+  AccountERC20,
+  AccountERC20Schema,
+  AccountTrx,
+  AccountTrxSchema,
+} from "@schema";
 
 @Module({
-  imports: [MongooseModule.forFeature([])],
+  imports: [
+    MongooseModule.forFeature([
+      { name: BitcoinTracker.name, schema: BitcoinTrackerSchema },
+      { name: Deposit.name, schema: DepositSchema },
+      { name: AccountERC20.name, schema: AccountERC20Schema },
+      { name: AccountTrx.name, schema: AccountTrxSchema },
+    ]),
+  ],
   controllers: [],
   providers: [LoggerService, TrackerService, BscService],
 })
