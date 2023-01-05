@@ -1,5 +1,5 @@
 Arguments: 
-  /usr/local/bin/node /usr/local/bin/yarn add -D @types/base58check
+  /usr/local/bin/node /usr/local/bin/yarn add -D @types/bcoin
 
 PATH: 
   /Users/dev/.cargo/bin:/Library/Frameworks/Python.framework/Versions/3.11/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/go/bin:/Library/Apple/usr/bin:/Users/dev/.cargo/bin:/Library/Frameworks/Python.framework/Versions/3.11/bin
@@ -14,7 +14,7 @@ Platform:
   darwin arm64
 
 Trace: 
-  Error: https://registry.yarnpkg.com/@types%2fbase58check: Not found
+  Error: https://registry.yarnpkg.com/@types%2fbcoin: Not found
       at Request.params.callback [as _callback] (/usr/local/lib/node_modules/yarn/lib/cli.js:67029:18)
       at Request.self.callback (/usr/local/lib/node_modules/yarn/lib/cli.js:140883:22)
       at Request.emit (node:events:527:28)
@@ -55,7 +55,7 @@ npm manifest:
       "@nestjs/swagger": "^6.1.4",
       "api": "^5.0.5",
       "axios": "^1.2.2",
-      "base58check": "^2.0.0",
+      "bcrypto": "^5.4.0",
       "bip32": "^3.1.0",
       "bip39": "^3.0.4",
       "bitcoin-address-validation": "^2.2.1",
@@ -79,6 +79,7 @@ npm manifest:
       "rxjs": "^7.2.0",
       "send-crypto": "^0.2.38",
       "tron-create-address": "^0.1.10",
+      "tron-format-address": "^0.1.8",
       "tronweb": "^5.0.0",
       "web3": "^1.8.1"
     },
@@ -3329,11 +3330,6 @@ Lockfile:
     resolved "https://registry.yarnpkg.com/balanced-match/-/balanced-match-1.0.2.tgz#e83e3a7e3f300b34cb9d87f615fa0cbf357690ee"
     integrity sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==
   
-  base-x@^1.1.0:
-    version "1.1.0"
-    resolved "https://registry.yarnpkg.com/base-x/-/base-x-1.1.0.tgz#42d3d717474f9ea02207f6d1aa1f426913eeb7ac"
-    integrity sha512-c0WLeG3K5OlL4Skz2/LVdS+MjggByKhowxQpG+JpCLA48s/bGwIDyzA1naFjywtNvp/37fLK0p0FpjTNNLLUXQ==
-  
   base-x@^3.0.2, base-x@^3.0.8:
     version "3.0.9"
     resolved "https://registry.yarnpkg.com/base-x/-/base-x-3.0.9.tgz#6349aaabb58526332de9f60995e548a53fe21320"
@@ -3358,13 +3354,6 @@ Lockfile:
     resolved "https://registry.yarnpkg.com/base58-js/-/base58-js-1.0.5.tgz#00697bff954aa85007fa45ce76b699b7960768cd"
     integrity sha512-LkkAPP8Zu+c0SVNRTRVDyMfKVORThX+rCViget00xdgLRrKkClCTz1T7cIrpr69ShwV5XJuuoZvMvJ43yURwkA==
   
-  base58check@^2.0.0:
-    version "2.0.0"
-    resolved "https://registry.yarnpkg.com/base58check/-/base58check-2.0.0.tgz#8046652d14bc87f063bd16be94a39134d3b61173"
-    integrity sha512-sTzsDAOC9+i2Ukr3p1Ie2DWpD117ua+vBJRDnpsSlScGwImeeiTg/IatwcFLsz9K9wEGoBLVd5ahNZzrZ/jZyg==
-    dependencies:
-      bs58 "^3.0.0"
-  
   base64-js@^1.3.1, base64-js@^1.5.1:
     version "1.5.1"
     resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
@@ -3386,6 +3375,14 @@ Lockfile:
     integrity sha512-qeFIXtP4MSoi6NLqO12WfqARWWuCKi2Rn/9hJLEmtB5yTNr9DqFWkJRCf2qShWzPeAMRnOgCrq0sg/KLv5ES9w==
     dependencies:
       tweetnacl "^0.14.3"
+  
+  bcrypto@^5.4.0:
+    version "5.4.0"
+    resolved "https://registry.yarnpkg.com/bcrypto/-/bcrypto-5.4.0.tgz#4046f0c44a4b301eff84de593b4f86fce8d91db2"
+    integrity sha512-KDX2CR29o6ZoqpQndcCxFZAtYA1jDMnXU3jmCfzP44g++Cu7AHHtZN/JbrN/MXAg9SLvtQ8XISG+eVD9zH1+Jg==
+    dependencies:
+      bufio "~1.0.7"
+      loady "~0.0.5"
   
   bech32@0.0.3:
     version "0.0.3"
@@ -3784,13 +3781,6 @@ Lockfile:
     resolved "https://registry.yarnpkg.com/bs58/-/bs58-2.0.1.tgz#55908d58f1982aba2008fa1bed8f91998a29bf8d"
     integrity sha512-77ld2g7Hn1GyIUpuUVfbZdhO1q9R9gv/GYam4HAeAW/tzhQDrbJ2ZttN1tIe4hmKrWFE+oUtAhBNx/EA5SVdTg==
   
-  bs58@^3.0.0:
-    version "3.1.0"
-    resolved "https://registry.yarnpkg.com/bs58/-/bs58-3.1.0.tgz#d4c26388bf4804cac714141b1945aa47e5eb248e"
-    integrity sha512-9C2bRFTGy3meqO65O9jLvVTyawvhLVp4h2ECm5KlRPuV5KPDNJZcJIj3gl+aA0ENXcYrUSLCkPAeqbTcI2uWyQ==
-    dependencies:
-      base-x "^1.1.0"
-  
   bs58@^4.0.0, bs58@^4.0.1:
     version "4.0.1"
     resolved "https://registry.yarnpkg.com/bs58/-/bs58-4.0.1.tgz#be161e76c354f6f788ae4071f63f34e8c4f0a42a"
@@ -3875,6 +3865,11 @@ Lockfile:
     integrity sha512-kukuqc39WOHtdxtw4UScxF/WVnMFVSQVKhtx3AjZJzhd0RGZZldcrfSEbVsWWe6KNH253574cq5F+wpv0G9pJw==
     dependencies:
       node-gyp-build "^4.3.0"
+  
+  bufio@~1.0.7:
+    version "1.0.7"
+    resolved "https://registry.yarnpkg.com/bufio/-/bufio-1.0.7.tgz#b7f63a1369a0829ed64cc14edf0573b3e382a33e"
+    integrity sha512-bd1dDQhiC+bEbEfg56IdBv7faWa6OipMs/AFFFvtFnB3wAYjlwQpQRZ0pm6ZkgtfL0pILRXhKxOiQj6UzoMR7A==
   
   builtins@^5.0.0:
     version "5.0.1"
@@ -6847,6 +6842,11 @@ Lockfile:
     resolved "https://registry.yarnpkg.com/loader-runner/-/loader-runner-4.3.0.tgz#c1b4a163b99f614830353b16755e7149ac2314e1"
     integrity sha512-3R/1M+yS3j5ou80Me59j7F9IMs4PXs3VqRrm0TU3AbKPxlmpoY1TNscJV/oGJXo8qCatFGTfDbY6W6ipGOYXfg==
   
+  loady@~0.0.5:
+    version "0.0.5"
+    resolved "https://registry.yarnpkg.com/loady/-/loady-0.0.5.tgz#b17adb52d2fb7e743f107b0928ba0b591da5d881"
+    integrity sha512-uxKD2HIj042/HBx77NBcmEPsD+hxCgAtjEWlYNScuUjIsh/62Uyu39GOR68TBR68v+jqDL9zfftCWoUo4y03sQ==
+  
   locate-path@^5.0.0:
     version "5.0.0"
     resolved "https://registry.yarnpkg.com/locate-path/-/locate-path-5.0.0.tgz#1afba396afd676a6d42504d0a67a3a7eb9f62aa0"
@@ -8940,6 +8940,11 @@ Lockfile:
     integrity sha512-hT+PNLp6aLodurli+fqLmwpVzHHUIMvzDXNqETgice1/51aXyp3VR27WWc3ivp/wWyG9XwUDQtwY45rygVu5GQ==
     dependencies:
       js-sha3 "^0.8.0"
+  
+  tron-format-address@^0.1.8:
+    version "0.1.8"
+    resolved "https://registry.yarnpkg.com/tron-format-address/-/tron-format-address-0.1.8.tgz#e25226dc00822fc91b0efeeae0fbf555584379fa"
+    integrity sha512-oTtzUM43OZhQiv1p2aOVqbnev6mmJHXQrMpS3nn7zVAI/+ffA/aF+Y/vugHtYotckkromRLPEl/SR1HfJjAYQA==
   
   tronweb@^5.0.0:
     version "5.0.0"

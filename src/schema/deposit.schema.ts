@@ -9,7 +9,7 @@ export class Deposit {
   @Prop({ required: true, enum: listNetwork, default: listNetwork.Bitcoin })
   network: listNetwork;
 
-  @Prop({ required: true })
+  @Prop({ required: false, default: "" })
   from: string;
 
   @Prop({ required: true })

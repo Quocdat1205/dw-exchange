@@ -14,6 +14,8 @@ import {
   DepositType,
   AccountTrx,
   AccountTrxType,
+  AccountBtc,
+  AccountBtcType,
 } from "@schema";
 import { Model } from "mongoose";
 import axios from "axios";
@@ -25,6 +27,8 @@ import { fromHex } from "tron-format-address";
 
 const URL_BLOCKCHAIN = "https://blockchain.info/tx";
 const URL_BSC = "https://bsc-dataseed1.binance.org/";
+// const URL_TRACKER_BTC = "https://chain.api.btc.com/v3/address/address/tx";
+const pageSize = 30;
 
 @Injectable()
 export class TrackerService {
@@ -45,6 +49,8 @@ export class TrackerService {
     private readonly modelAccountErc20: Model<AccountERC20Type>,
     @InjectModel(AccountTrx.name)
     private readonly modelAccountTrx: Model<AccountTrxType>,
+    @InjectModel(AccountBtc.name)
+    private readonly modelAccountBitcoin: Model<AccountBtcType>,
   ) {
     this.web3 = new Web3API(
       new Web3API.providers.HttpProvider(env.INFURA_KEY_RCP),
@@ -56,7 +62,7 @@ export class TrackerService {
     this.eventServer = new this.HttpProvider(env.TRX_RPC);
   }
 
-  @Interval(1000 * 60 * 1.25)
+  @Interval("Tracker transaction trx", 1000 * 60 * 1.5) // 1.25 minutes
   async trackerTrx() {
     const tronWeb = new TronWeb(
       this.fullNode,
@@ -125,7 +131,7 @@ export class TrackerService {
     }
   }
 
-  @Interval("Track and update log send transaction bitcoin", 1000 * 60 * 1.75) // 1.75 minutes
+  @Interval("Track and update log send transaction bitcoin", 1000 * 60 * 2.25) // 1.75 minutes
   async trackerAddTransactionBitcoin() {
     LoggerService.log(`Logger tracker transaction on bitcoin network`);
     try {
@@ -168,7 +174,7 @@ export class TrackerService {
     }
   }
 
-  @Interval("Tracker transaction ethereum", 1000 * 60 * 1.25) // 1.25 minutes
+  @Interval("Tracker transaction ethereum", 1000 * 60 * 25) // 1.25 minutes
   async getTransactionHistoryBscAndEthereum() {
     LoggerService.log(`Tracker transaction ethereum`);
     const account = await this.modelAccountErc20.find().select({
@@ -222,7 +228,7 @@ export class TrackerService {
     }
   }
 
-  @Interval("Tracker transaction bsc", 1000 * 60 * 1) // 1 minutes
+  @Interval("Tracker transaction bsc", 1000 * 60 * 2.1) // 1 minutes
   async trackerBsc() {
     LoggerService.log(`Tracker transaction bsc`);
     const account = await this.modelAccountErc20.find().select({
@@ -271,6 +277,75 @@ export class TrackerService {
           continue;
         }
       }
+    }
+  }
+
+  @Interval(1000 * 60 * 5) // 5 minutes
+  async trackerBitcoin() {
+    LoggerService.log(`Tracker bitcoin network`);
+
+    const { data: get_total_page } = await axios.get(
+      ` ${env.BTC_FETCH}/block/latest/tx?verbose=2`,
+    );
+
+    if (get_total_page.err_code !== 200) return;
+
+    try {
+      const page_total = get_total_page.data.page_total;
+      const account = await this.modelAccountBitcoin.find().select({
+        address: 1,
+        _id: 0,
+      });
+      const convertToArray = account.reduce((value, cur) => {
+        return {
+          ...value,
+          [cur.address]: cur.address,
+        };
+      }, {});
+
+      for (let i = 1; i <= page_total; i++) {
+        try {
+          const { data } = await axios.get(
+            ` ${env.BTC_FETCH}/block/latest/tx?verbose=2&pageSize=${pageSize}&page=${i}`,
+          );
+          if (data.err_code !== 200) continue;
+
+          const list = data.data.list;
+
+          if (!list) return;
+
+          for (const child of list) {
+            const out_puts = child.outputs;
+            for (const out_put of out_puts) {
+              if (convertToArray[out_put.addresses[0]]) {
+                const result = {
+                  network: listNetwork.Ethereum,
+                  from: "",
+                  to: convertToArray[out_put.addresses[0]],
+                  symbol: "BTC",
+                  value: weiToEther(out_put.value),
+                  contractAddress: null,
+                  gasPrice: 0,
+                  gasUse: weiToEther(`${child.fee}`),
+                  blockNumber: child.block_time,
+                  transaction_hash: child.hash,
+                  category: 0, // 1: send, 0: receive
+                  confirmations: 0,
+                  cumulativeGasUsed: 0,
+                  effectiveGasPrice: 0,
+                };
+                await new this.modelDeposit({ ...result }).save();
+              }
+            }
+          }
+        } catch (error) {
+          continue;
+        }
+
+        await sleep(5000);
+      }
+    } catch (error) {
+      console.log(error);
     }
   }
 }

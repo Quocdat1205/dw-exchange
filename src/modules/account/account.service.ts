@@ -12,8 +12,6 @@ import {
   AccountBtcType,
   NetWork,
   NetworkType,
-  TokenConfig,
-  TokenConfigType,
 } from "@schema";
 import {
   ResponseCreateAccountDto,
@@ -43,6 +41,15 @@ export class WalletService {
   private web3: Web3API;
   private tronWeb: any;
   private provider: any;
+
+  private tronProvider: any;
+  private fullNode: any;
+  private solidityNode: any;
+  private eventServer: any;
+  private privateKey =
+    "3481E79956D4BD95F358AC96D151C976392FC4E3FC132F78A847906DE588C145";
+  private tronWebProvider: any;
+
   constructor(
     @InjectModel(AccountERC20.name)
     private readonly modelAccountEthereum: Model<AccountERC20Type>,
@@ -52,17 +59,25 @@ export class WalletService {
     private readonly modelAccountBtc: Model<AccountBtcType>,
     @InjectModel(NetWork.name)
     private readonly modelNetwork: Model<NetworkType>,
-    @InjectModel(TokenConfig.name)
-    private readonly modelToken: Model<TokenConfigType>,
     private readonly bscService: BscService,
   ) {
+    this.tronProvider = TronWeb.providers.HttpProvider;
     this.web3 = new Web3API(
       new Web3API.providers.HttpProvider(env.ETHEREUM_RCP),
     );
     this.tronWeb = new TronWeb({
       fullHost: env.TRX_RPC,
     });
+    this.fullNode = new this.tronProvider("https://api.trongrid.io");
+    this.solidityNode = new this.tronProvider("https://api.trongrid.io");
+    this.eventServer = new this.tronProvider("https://api.trongrid.io");
     this.provider = new ethers.providers.WebSocketProvider(`${env.INFURA_KEY}`);
+    this.tronWebProvider = new TronWeb(
+      this.fullNode,
+      this.solidityNode,
+      this.eventServer,
+      this.privateKey,
+    );
   }
 
   public async createNewWallet(
@@ -137,7 +152,7 @@ export class WalletService {
       hex: wallet.address.hex,
     }).save();
 
-    return { address: wallet.base58, privateKey: wallet.privateKey };
+    return { address: wallet.address.base58, privateKey: wallet.privateKey };
   }
 
   private async createAccountBitcoin(): Promise<ResponseCreateAccountDto> {
@@ -192,20 +207,8 @@ export class WalletService {
   }
 
   public async getBalanceOfToken(props: GetBalanceOfDto) {
-    const { network, address, symbol } = props;
-    LoggerService.log(`Get balance token`);
-
-    const find_token = await this.modelToken.findOne({
-      network,
-      symbol,
-    });
-
-    if (!find_token) {
-      return Exception({
-        statusCode: RESPONSE_CODE.bad_request,
-        message: "Token does't support",
-      });
-    }
+    const { network, address, symbol, contractAddress } = props;
+    LoggerService.log(`Get balance token on network: ${network}`);
 
     const validateAddress = await isAddressValid(address, network);
     if (!validateAddress) {
@@ -217,13 +220,17 @@ export class WalletService {
 
     switch (network) {
       case listNetwork.Ethereum:
-        const balanceEthereum = await this.getBalanceEthereum(address);
+        const balanceEthereum = await this.getBalanceEthereum(
+          address,
+          contractAddress,
+          symbol,
+        );
 
         return balanceEthereum;
       case listNetwork.Bsc:
         const balanceBsc = await this.getBalanceTokenBsc(
           address,
-          find_token.contractAddress,
+          contractAddress,
           symbol,
         );
 
@@ -233,29 +240,90 @@ export class WalletService {
 
         return balanceBtc;
       case listNetwork.Trx:
-        const balanceTrx = await this.getBalanceTrx(address);
+        const balanceTrx = await this.getBalanceTrx(
+          address,
+          contractAddress,
+          symbol,
+        );
 
         return balanceTrx;
     }
   }
 
-  public async getBalanceTrx(address: string) {
-    const balance = await this.tronWeb.trx.getAccount(address);
+  public async getBalanceTrx(
+    address: string,
+    contractAddress: string,
+    symbol: string,
+  ) {
+    if (symbol === "TRX") {
+      const balance = await this.tronWeb.trx.getAccount(address);
+
+      return Exception({
+        statusCode: RESPONSE_CODE.success,
+        data: { balance: balance.balance / 10 ** 6 || 0 },
+      });
+    }
+
+    const { abi } = await this.tronWeb.trx.getContract(contractAddress);
+    const contract = this.tronWebProvider.contract(abi.entrys, contractAddress);
+    const symbolSc = await contract.methods.symbol().call();
+    const decimals = await contract.methods.decimals().call();
+
+    if (symbolSc !== symbol) {
+      return Exception({
+        statusCode: RESPONSE_CODE.success,
+        message: "Contract and symbol does't match",
+      });
+    }
+
+    const balance = await contract.methods.balanceOf(address).call();
+    const parse = Number(balance);
 
     return Exception({
       statusCode: RESPONSE_CODE.success,
-      data: { balance: balance.balance / 10 ** 6 || 0 },
+      data: { balance: parse / 10 ** decimals || 0 },
     });
   }
 
-  public async getBalanceEthereum(address: string) {
-    const balance = await this.provider.getBalance(address);
-    const parseBalance = weiToEther(balance);
+  public async getBalanceEthereum(
+    address: string,
+    contractAddress: string,
+    symbol: string,
+  ) {
+    try {
+      if (symbol === "ETH") {
+        const balance = await this.provider.getBalance(address);
+        const parseBalance = weiToEther(balance);
 
-    return Exception({
-      statusCode: RESPONSE_CODE.success,
-      data: { balance: parseBalance },
-    });
+        return Exception({
+          statusCode: RESPONSE_CODE.success,
+          data: { balance: parseBalance },
+        });
+      }
+
+      const tokenContract = new ethers.Contract(
+        contractAddress,
+        ERC20_ABI,
+        this.provider,
+      );
+
+      const balance = await tokenContract.callStatic.balanceOf(address);
+      const parseBalance = weiToEther(balance);
+      console.log(parseBalance);
+
+      return Exception({
+        statusCode: RESPONSE_CODE.success,
+        data: { balance: parseBalance },
+      });
+    } catch (error) {
+      console.log(error);
+
+      return Exception({
+        statusCode: RESPONSE_CODE.success,
+        message:
+          "The contract address for the network is wrong, please check again",
+      });
+    }
   }
 
   public async getBalanceTokenBsc(
@@ -264,24 +332,23 @@ export class WalletService {
     symbol: string,
   ) {
     try {
-      // find account
-      const account = await this.modelAccountEthereum
-        .findOne({
-          address,
-        })
-        .exec();
-
-      if (!account) {
-        return Exception({
-          statusCode: RESPONSE_CODE.bad_request,
-          message: "Account not found",
-        });
-      }
-
-      // connect wallet
-      const wallet = this.bscService.createWallet(account.privateKey);
-
       if (symbol === "BNB") {
+        // find account
+        const account = await this.modelAccountEthereum
+          .findOne({
+            address,
+          })
+          .exec();
+
+        if (!account) {
+          return Exception({
+            statusCode: RESPONSE_CODE.bad_request,
+            message: "Account not found",
+          });
+        }
+
+        // connect wallet
+        const wallet = this.bscService.createWallet(account.privateKey);
         const balance = await wallet.getBalance();
         const parseBalance = weiToEther(balance);
 
@@ -295,10 +362,10 @@ export class WalletService {
       const contract = this.bscService.createContract(
         contractAddress,
         ERC20_ABI,
-        wallet,
       );
+
       // get balance
-      const balance = await contract.connect(wallet).balanceOf(account.address);
+      const balance = await contract.callStatic.balanceOf(address);
       const parseBalance = weiToEther(balance);
 
       return Exception({
@@ -320,11 +387,11 @@ export class WalletService {
 
     const fetchData = await fetch(url);
 
-    const balance = fetchData.json();
+    const balance = await fetchData.json();
 
     return Exception({
       statusCode: RESPONSE_CODE.success,
-      data: { balance },
+      data: { balance: balance / 10 ** 8 },
     });
   }
 
@@ -332,35 +399,114 @@ export class WalletService {
     props: GetInfoTokenBySmartContractDto,
   ) {
     const { network, contractAddress } = props;
+    LoggerService.log(`Get info token by smartcontract: ${network}`);
+
     const isValid = await isAddressValid(contractAddress, network);
 
     if (!isValid) {
       return Exception({
         statusCode: RESPONSE_CODE.bad_request,
-        message: "Invalid address",
+        message: "Invalid address for network",
       });
     }
 
-    const contract = await this.modelToken.findOne({
-      network,
+    try {
+      switch (network) {
+        case listNetwork.Ethereum:
+          const tokenInfoEthereum = await this.getInfoSmartContractEthereum(
+            contractAddress,
+          );
+          return Exception({
+            statusCode: RESPONSE_CODE.success,
+            data: tokenInfoEthereum,
+          });
+        case listNetwork.Bsc:
+          const tokenInfoBsc = await this.getInfoSmartContractBsc(
+            contractAddress,
+          );
+          return Exception({
+            statusCode: RESPONSE_CODE.success,
+            data: tokenInfoBsc,
+          });
+        case listNetwork.Bitcoin:
+          return Exception({
+            statusCode: RESPONSE_CODE.success,
+            message: "Network does't support smartcontract",
+          });
+        case listNetwork.Trx:
+          const tokenInfoByTron = await this.getInfoSmartContractTron(
+            contractAddress,
+          );
+          return Exception({
+            statusCode: RESPONSE_CODE.success,
+            data: tokenInfoByTron,
+          });
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  private async getInfoSmartContractBsc(contractAddress: string) {
+    const contractBsc = this.bscService.createContract(
       contractAddress,
-    });
+      ERC20_ABI,
+    );
+    const name = await contractBsc.callStatic.name();
+    const symbol = await contractBsc.callStatic.symbol();
+    const decimals = await contractBsc.callStatic.decimals();
 
-    if (!contract) {
-      return Exception({
-        statusCode: RESPONSE_CODE.bad_request,
-        message: "Token does't support",
-      });
-    }
+    const result = {
+      contract: contractAddress,
+      name: name || "",
+      symbol: symbol || "",
+      decimals: decimals || 18,
+    };
 
-    return Exception({
-      statusCode: RESPONSE_CODE.success,
-      data: {
-        contract: contract.contractAddress,
-        name: contract.name,
-        symbol: contract.symbol,
-        decimals: contract.decimals,
-      },
-    });
+    return result;
+  }
+
+  private async getInfoSmartContractEthereum(contractAddress: string) {
+    const contractEthereum = new ethers.Contract(
+      contractAddress,
+      ERC20_ABI,
+      this.provider,
+    );
+
+    const name = await contractEthereum.callStatic.name();
+    const symbol = await contractEthereum.callStatic.symbol();
+    const decimals = await contractEthereum.callStatic.decimals();
+
+    const result = {
+      contract: contractAddress,
+      name: name || "",
+      symbol: symbol || "",
+      decimals: decimals || 18,
+    };
+
+    return result;
+  }
+
+  private async getInfoSmartContractTron(contractAddress: string) {
+    const { abi } = await this.tronWeb.trx.getContract(contractAddress);
+
+    const contract = this.tronWebProvider.contract(abi.entrys, contractAddress);
+
+    const name = await contract.methods.name().call();
+    const symbol = await contract.methods.symbol().call();
+    const decimals = await contract.methods.decimals().call();
+
+    // const balance = await contract.methods
+    //   .balanceOf("TSrsPar2bjxSUepC3if4ztRnb7VxsnRNjC")
+    //   .call();
+
+    const result = {
+      contract: contractAddress,
+      name: name || "",
+      symbol: symbol || "",
+      decimals: decimals || 18,
+    };
+
+    return result;
   }
 }

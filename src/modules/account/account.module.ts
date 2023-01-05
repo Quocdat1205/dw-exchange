@@ -12,8 +12,6 @@ import {
   AccountBtcSchema,
   NetWork,
   NetworkSchema,
-  TokenConfig,
-  TokenConfigSchema,
 } from "@schema";
 import { BscService } from "@modules/bsc/bsc.service";
 
@@ -24,7 +22,6 @@ import { BscService } from "@modules/bsc/bsc.service";
       { name: AccountTrx.name, schema: AccountTrxSchema },
       { name: AccountBtc.name, schema: AccountBtcSchema },
       { name: NetWork.name, schema: NetworkSchema },
-      { name: TokenConfig.name, schema: TokenConfigSchema },
     ]),
   ],
   controllers: [WalletController],

@@ -14,7 +14,7 @@ export class WithDrawTokenDto {
   @ApiProperty({
     type: String,
     title: "The type of network you want to create an account for",
-    description: `Network in [Bitcoin, Ethereum, TRX, BSC]`,
+    description: `Network in [Bitcoin, Ethereum, TRON, BSC]`,
     default: "Bitcoin",
   })
   @IsEnum(listNetwork)
@@ -71,6 +71,7 @@ export class WithDrawTokenDto {
     title: "Contract address transfer",
     description: "Amount tokne",
     example: "0x55d398326f99059ff775485246999027b3197955",
+    nullable: true,
   })
   @IsOptional()
   contractAddress: string;

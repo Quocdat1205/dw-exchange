@@ -1,5 +1,10 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsEnum, IsEthereumAddress, IsString } from "class-validator";
+import {
+  IsEnum,
+  IsEthereumAddress,
+  IsString,
+  IsOptional,
+} from "class-validator";
 import { listNetwork } from "@utils/constant/network";
 
 export class ResponseCreateAccountDto {
@@ -111,10 +116,20 @@ export class GetBalanceOfDto {
   @ApiProperty({
     type: String,
     title: "Token",
-    default: "Ethereum",
+    default: "BSC",
+    required: false,
   })
   @IsString()
   symbol: string;
+
+  @ApiProperty({
+    type: String,
+    title: "Contract address token",
+    default: "0x55d398326f99059ff775485246999027b3197955",
+    required: false,
+  })
+  @IsOptional()
+  contractAddress: string;
 }
 
 export class GetInfoTokenBySmartContractDto {
@@ -132,6 +147,7 @@ export class GetInfoTokenBySmartContractDto {
     title: "Contract address",
     description: `Contract address in chain [Bitcoin, Ethereum, TRON, BSC]`,
     default: "0x55d398326f99059fF775485246999027B3197955",
+    required: false,
   })
   @IsString()
   contractAddress: string;

@@ -6,3 +6,4 @@ export * from "./tokenconfig.schema";
 export * from "./withdraw.schema";
 export * from "./bitcoin-tracker.schema";
 export * from "./deposit.schema";
+export * from "./waiting-tron.schem";

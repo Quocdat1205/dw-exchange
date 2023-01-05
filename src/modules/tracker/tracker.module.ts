@@ -12,6 +12,8 @@ import {
   AccountERC20Schema,
   AccountTrx,
   AccountTrxSchema,
+  AccountBtc,
+  AccountBtcSchema,
 } from "@schema";
 
 @Module({
@@ -21,6 +23,7 @@ import {
       { name: Deposit.name, schema: DepositSchema },
       { name: AccountERC20.name, schema: AccountERC20Schema },
       { name: AccountTrx.name, schema: AccountTrxSchema },
+      { name: AccountBtc.name, schema: AccountBtcSchema },
     ]),
   ],
   controllers: [],

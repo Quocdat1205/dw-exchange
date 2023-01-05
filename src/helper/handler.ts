@@ -1,4 +1,4 @@
-import { BigNumber, ethers } from "ethers";
+import { BigNumber, BigNumberish, ethers } from "ethers";
 import { listNetwork } from "@utils/constant/network";
 import Web3 from "web3";
 import { validate, Network } from "bitcoin-address-validation";
@@ -7,6 +7,14 @@ import env from "@utils/constant/env";
 
 export const etherToWei = (amount: number | string): BigNumber =>
   ethers.utils.parseEther(amount.toString());
+
+export const formatUnits = (
+  value: BigNumberish,
+  unitName?: string | BigNumberish,
+) => parseFloat(ethers.utils.formatUnits(value, unitName));
+
+export const parseUnit = (amount: string, unit?: BigNumberish): BigNumber =>
+  ethers.utils.parseUnits(amount, unit);
 
 export const weiToEther = (wei: string | BigNumber): number =>
   parseFloat(ethers.utils.formatEther(wei));

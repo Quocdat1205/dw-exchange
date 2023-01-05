@@ -14,6 +14,7 @@ define("INFURA_KEY", process.env.INFURA_KEY);
 define("BSC_RCP", process.env.BSC_RCP);
 define("BTC_RCP", process.env.BTC_RCP);
 define("INFURA_KEY_RCP", process.env.INFURA_KEY_RCP);
+define("BTC_FETCH", process.env.BTC_FETCH);
 
 function define(key: string, value: any) {
   Object.defineProperty(env, key, {
