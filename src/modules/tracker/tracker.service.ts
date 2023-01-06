@@ -1,7 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import Web3API from "web3";
 import env from "@utils/constant/env";
-import { BscService } from "@modules/bsc/bsc.service";
 import TronWeb from "tronweb";
 import { Interval } from "@nestjs/schedule";
 import { InjectModel } from "@nestjs/mongoose";
@@ -24,6 +23,7 @@ import { sleep, weiToEther } from "src/helper/handler";
 import { LoggerService } from "@modules/logger/logger.service";
 import { checkObject } from "src/helper/handler";
 import { fromHex } from "tron-format-address";
+// import { formatters } from "web3-core-helpers";
 
 const URL_BLOCKCHAIN = "https://blockchain.info/tx";
 const URL_BSC = "https://bsc-dataseed1.binance.org/";
@@ -40,7 +40,6 @@ export class TrackerService {
   private eventServer: any;
 
   constructor(
-    private readonly bscService: BscService,
     @InjectModel(BitcoinTracker.name)
     private readonly modelBitcoinTracker: Model<BitcoinTrackerType>,
     @InjectModel(Deposit.name)
@@ -131,7 +130,7 @@ export class TrackerService {
     }
   }
 
-  @Interval("Track and update log send transaction bitcoin", 1000 * 60 * 2.25) // 1.75 minutes
+  @Interval("Track and update log send transaction bitcoin", 1000 * 60 * 2.25) // 2.25 minutes
   async trackerAddTransactionBitcoin() {
     LoggerService.log(`Logger tracker transaction on bitcoin network`);
     try {
@@ -174,8 +173,8 @@ export class TrackerService {
     }
   }
 
-  @Interval("Tracker transaction ethereum", 1000 * 60 * 25) // 1.25 minutes
-  async getTransactionHistoryBscAndEthereum() {
+  @Interval("Tracker transaction ethereum", 1000 * 60 * 2.5) // 2.5 minutes
+  async getTransactionHistoryEthereum() {
     LoggerService.log(`Tracker transaction ethereum`);
     const account = await this.modelAccountErc20.find().select({
       address: 1,
@@ -221,14 +220,14 @@ export class TrackerService {
           }
           await sleep(100);
         } catch (error) {
-          console.error(error);
+          console.error("ERROR TRACKER ETH", error);
           continue;
         }
       }
     }
   }
 
-  @Interval("Tracker transaction bsc", 1000 * 60 * 2.1) // 1 minutes
+  @Interval("Tracker transaction bsc", 1000 * 60 * 1.5) // 1.5 minutes
   async trackerBsc() {
     LoggerService.log(`Tracker transaction bsc`);
     const account = await this.modelAccountErc20.find().select({
@@ -249,14 +248,15 @@ export class TrackerService {
     if (block != null && transactions != null) {
       for (const txHash of block.transactions) {
         try {
-          const tx = await this.web3.eth.getTransaction(txHash);
+          const tx = await this.web3Bsc.eth.getTransaction(txHash);
+
           if (tx && tx.to) {
             if (convertToArray[tx.to.toLowerCase()]) {
               const result = {
-                network: listNetwork.Ethereum,
+                network: listNetwork.Bsc,
                 from: tx.from,
                 to: tx.to,
-                symbol: "ETH",
+                symbol: "BNB",
                 value: weiToEther(tx.value),
                 contractAddress: null,
                 gasPrice: weiToEther(tx.gasPrice),
@@ -268,12 +268,14 @@ export class TrackerService {
                 cumulativeGasUsed: 0,
                 effectiveGasPrice: 0,
               };
+              console.log("RESULTTTTT", result);
 
               await new this.modelDeposit({ ...result }).save();
             }
           }
+
+          await sleep(100);
         } catch (error) {
-          console.error(error);
           continue;
         }
       }
@@ -345,7 +347,7 @@ export class TrackerService {
         await sleep(5000);
       }
     } catch (error) {
-      console.log(error);
+      console.log("ERROR TRACKER BTC", error);
     }
   }
 }

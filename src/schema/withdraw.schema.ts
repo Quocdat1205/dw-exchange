@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
-import { listNetwork } from "@utils/constant/network";
+import { listNetwork, state_transfer } from "@utils/constant/network";
 
 export type WithDrawType = WithDraw & Document;
 
@@ -15,11 +15,11 @@ export class WithDraw {
   @Prop({ required: true })
   to: string;
 
-  @Prop({ required: true })
+  @Prop({ required: false, default: 1 })
   category: number;
 
   @Prop({ required: false })
-  contractAddress: number;
+  contractAddress: string;
 
   @Prop({ required: true })
   symbol: string;
@@ -27,7 +27,7 @@ export class WithDraw {
   @Prop({ required: true })
   value: number;
 
-  @Prop({ required: true })
+  @Prop({ required: false, default: 0 })
   gasPrice: number;
 
   @Prop({ required: true })
@@ -39,14 +39,17 @@ export class WithDraw {
   @Prop({ required: true })
   transaction_hash: string;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   confirmations: number;
 
-  @Prop({ required: true })
+  @Prop({ required: false, default: 0 })
   cumulativeGasUsed: number;
 
-  @Prop({ required: true })
+  @Prop({ required: false, default: 0 })
   effectiveGasPrice: number;
+
+  @Prop({ required: false, default: state_transfer.success })
+  status: string;
 
   @Prop({ type: Date, default: Date.now })
   createdAt?: Date;

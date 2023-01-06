@@ -14,7 +14,7 @@ import {
   WaitingTronType,
 } from "@schema";
 import { GetTransactionHistoryDto, WithDrawTokenDto } from "./transaction.dto";
-import { listNetwork } from "@utils/constant/network";
+import { listNetwork, state_transfer } from "@utils/constant/network";
 import { etherToWei, isAddressValid, parseUnit } from "src/helper/handler";
 import { Exception } from "@config/exception.config";
 import { RESPONSE_CODE, RESPONSE_MSG } from "@utils/constant/response-code";
@@ -36,7 +36,8 @@ export class TransactionService {
   private fullNode: any;
   private solidityNode: any;
   private eventServer: any;
-  private contractProvider;
+  private contractProvider: any;
+
   constructor(
     @InjectModel(WithDraw.name)
     private readonly modelWithdraw: Model<WithDrawType>,
@@ -176,6 +177,7 @@ export class TransactionService {
           confirmations: wait.confirmations,
           cumulativeGasUsed: weiToEther(wait.cumulativeGasUsed),
           effectiveGasPrice: weiToEther(wait.effectiveGasPrice),
+          status: state_transfer.success,
         };
 
         await new this.modelWithdraw({ ...result }).save();
@@ -234,6 +236,7 @@ export class TransactionService {
           confirmations: wait.confirmations,
           cumulativeGasUsed: weiToEther(wait.cumulativeGasUsed),
           effectiveGasPrice: weiToEther(wait.effectiveGasPrice),
+          status: state_transfer.success,
         };
 
         await new this.modelWithdraw({ ...result }).save();
@@ -291,6 +294,7 @@ export class TransactionService {
           confirmations: 0,
           cumulativeGasUsed: tx.cumulativeGasUsed,
           effectiveGasPrice: tx.effectiveGasPrice,
+          status: state_transfer.success,
         };
 
         await new this.modelWithdraw({ ...result }).save();
@@ -338,6 +342,7 @@ export class TransactionService {
           confirmations: wait.confirmations,
           cumulativeGasUsed: weiToEther(wait.cumulativeGasUsed),
           effectiveGasPrice: weiToEther(wait.effectiveGasPrice),
+          status: state_transfer.success,
         };
 
         await new this.modelWithdraw({ ...result }).save();
@@ -451,6 +456,7 @@ export class TransactionService {
           confirmations: 0,
           cumulativeGasUsed: 0,
           effectiveGasPrice: 0,
+          status: state_transfer.success,
         };
 
         await new this.modelWithdraw({ ...result }).save();
@@ -466,8 +472,8 @@ export class TransactionService {
         const { abi } = await tronWeb.trx.getContract(contractAddress);
         const contract = tronWeb.contract(abi.entrys, contractAddress);
         const decimals = await contract.methods.decimals().call();
-
         const balance = await contract.methods.balanceOf(from).call();
+        const symbol = await contract.methods.symbol().call();
 
         if (Number(balance) / 10 ** decimals < amount) {
           return Exception({
@@ -484,6 +490,26 @@ export class TransactionService {
         await new this.modelWaitingTron({
           transaction_hash: tx,
         }).save();
+
+        const result = {
+          network: listNetwork.Trx,
+          from,
+          to,
+          symbol,
+          value: amount,
+          contractAddress,
+          gasPrice: 0,
+          gasUse: 0,
+          blockNumber: 0,
+          transaction_hash: tx,
+          category: 1,
+          confirmations: 0,
+          cumulativeGasUsed: 0,
+          effectiveGasPrice: 0,
+          status: state_transfer.pending,
+        };
+
+        await new this.modelWithdraw({ ...result }).save();
 
         return Exception({
           statusCode: RESPONSE_CODE.success,

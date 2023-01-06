@@ -14,7 +14,10 @@ import {
   AccountTrxSchema,
   AccountBtc,
   AccountBtcSchema,
+  WithDraw,
+  WithDrawSchema,
 } from "@schema";
+import { TokenTrackerService } from "./token-tracker.service";
 
 @Module({
   imports: [
@@ -24,9 +27,10 @@ import {
       { name: AccountERC20.name, schema: AccountERC20Schema },
       { name: AccountTrx.name, schema: AccountTrxSchema },
       { name: AccountBtc.name, schema: AccountBtcSchema },
+      { name: WithDraw.name, schema: WithDrawSchema },
     ]),
   ],
   controllers: [],
-  providers: [LoggerService, TrackerService, BscService],
+  providers: [LoggerService, TrackerService, BscService, TokenTrackerService],
 })
 export class TrackerModule {}
