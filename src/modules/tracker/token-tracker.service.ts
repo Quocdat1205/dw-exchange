@@ -3,7 +3,7 @@ import { Contract, EventFilter } from "ethers";
 import { BscService } from "@modules/bsc/bsc.service";
 import { ERC20_ABI } from "@utils/abi/ERC20_ABI";
 import { Interval } from "@nestjs/schedule";
-import { LoggerService } from "../logger/logger.service";
+import { LoggerService } from "@modules/logger/logger.service";
 import { InjectModel } from "@nestjs/mongoose";
 import {
   AccountERC20,
@@ -24,7 +24,7 @@ import { weiToEther } from "src/helper/handler";
 import { contractUsdtBsc } from "@utils/constant/network";
 import TronWeb from "tronweb";
 import env from "@utils/constant/env";
-import { sleep } from "../../helper/handler";
+import { sleep } from "src/helper/handler";
 
 const private_key =
   "b8c374866547dfea61b68fdf48d524cc42c84d9379267e87aad7a4e021f75a6b";
